@@ -1,0 +1,174 @@
+---
+title: "Checking the comparisons you intended"
+output:
+  rmarkdown::html_vignette:
+    toc: true
+    toc_depth: 2
+vignette: >
+  %\VignetteIndexEntry{Checking the comparisons you intended}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  message = FALSE,
+  warning = TRUE,
+  fig.width = 8,
+  fig.height = 6,
+  fig.retina = 1,
+  fig.align = "center",
+  out.width = "100%"
+)
+library(MoPlot)
+```
+
+# Coding matrices and hypothesis matrices
+
+The matrix that R stores for a factor, set with `contrasts()`, is the *coding matrix* $C$: its columns code the factor in the model matrix. What the coefficients estimate is described by a different matrix, the *hypothesis matrix* $H$, whose rows state the combination of level means estimated by each coefficient. For a factor with $k$ levels and $k - 1$ contrasts, the level means satisfy $\mu = [\mathbf{1}, C]\,\beta$, so that
+
+$$
+\beta = H\mu, \qquad H = [\mathbf{1}, C]^{-1}.
+$$
+
+MoPlot always derives the compared levels from $H$, never from the signs of $C$. For standard codings, the two readings agree up to sign and scale. For orthogonal custom codings they agree too. For non-orthogonal custom codings, however, they can differ, and a coding written from the intended hypotheses can estimate different comparisons.
+
+Each row of $H$ can be written as $h_j = s_j (w_j^{+} - w_j^{-})$, two groups of levels with weights summing to one and a scale factor $s_j$: the coefficient equals $s_j$ times the difference between the two groups. A group with unequal weights is labelled `W(A .20, C .80)`.
+
+# An example of a coding that does not say what it seems
+
+A study compares a control condition with two treatments. The researchers want to know whether the treatments, taken together, improve on the control condition, and whether `T2` improves on it. A natural, but wrong, way to encode these questions is to write their weights directly as the coding columns:
+
+```{r wrong-coding}
+set.seed(2)
+trial <- data.frame(group = factor(rep(c("Control", "T1", "T2"), each = 30),
+                                   levels = c("Control", "T1", "T2")))
+trial$score <- rnorm(90, mean = c(10, 12, 15)[trial$group], sd = 3)
+
+intended <- rbind("Treat-Control" = c(Control = -1, T1 = 0.5, T2 = 0.5),
+                  "T2-Control"    = c(Control = -1, T1 = 0,   T2 = 1))
+
+trial_written <- trial
+contrasts(trial_written$group) <- t(intended)
+fit_written <- lm(score ~ group, data = trial_written)
+round(coef(fit_written)[-1], 2)
+```
+
+The coefficients suggest that the treatments do not improve on the control condition, but they do not estimate the intended comparisons. Without further information, MoPlot can only note that the signs of the coding columns do not describe the comparisons estimated:
+
+```{r note, message = 1:2}
+written <- contrasts_onepred(fit_written, "group")
+```
+
+The note does not say that the coding is wrong: a coding correctly derived from a hypothesis matrix also has columns that do not resemble the comparisons, as shown below. MoPlot cannot know what you intended.
+
+# Declaring the intended comparisons
+
+The argument `hypotheses` declares the intended comparisons, as the rows of a hypothesis matrix: one row per coefficient, in the order of the contrast columns, and one column per level, with weights summing to zero. Row names label the hypotheses; column names, when present, must be the levels and may be in any order.
+
+```{r check-written, message = 1:2}
+written <- contrasts_onepred(fit_written, "group", hypotheses = intended)
+attr(written, "hypothesis_check")
+```
+
+Neither coefficient estimates its declared hypothesis. The first compares `T1` with the mean of the control condition and `T2`, multiplied by 4/3; the second compares `T2` with `T1`. MoPlot does not correct the model, refit it, or change its coding: it reports what the fitted coding estimates. The figure shows these estimated comparisons, and its caption reports the result of the check:
+
+```{r plot-written, fig.cap = "The comparisons estimated by the coding written from the hypotheses."}
+moplot_onepred(fit_written, "group", hypotheses = intended, style = "publication")
+```
+
+# Obtaining the coding for the intended comparisons
+
+The coding that estimates the intended comparisons is obtained from the hypothesis matrix with the generalized inverse:
+
+```{r right-coding, message = 1:2}
+coding <- MASS::ginv(intended)
+dimnames(coding) <- list(levels(trial$group), rownames(intended))
+round(coding, 2)
+
+trial_derived <- trial
+contrasts(trial_derived$group) <- coding
+fit_derived <- lm(score ~ group, data = trial_derived)
+derived <- contrasts_onepred(fit_derived, "group", hypotheses = intended)
+round(coef(fit_derived)[-1], 2)
+```
+
+The check now confirms both hypotheses, and the coefficients equal the intended differences. Note that the correct coding column for *Treat-Control*, approximately $(-0.67, 1.33, -0.67)$, bears no resemblance to the comparison it estimates.
+
+```{r plot-derived, fig.cap = "The comparisons estimated by the coding derived from the hypothesis matrix."}
+moplot_onepred(fit_derived, "group", hypotheses = intended, style = "publication")
+```
+
+The **hypr** package builds the same matrices from hypotheses written as equations. `hypr::hmat()` returns the hypothesis matrix in the format expected by `hypotheses`, and `hypr::cmat()` the corresponding coding:
+
+```{r hypr, eval = requireNamespace("hypr", quietly = TRUE), message = 1:2}
+h <- hypr::hypr(TreatControl = (T1 + T2) / 2 ~ Control,
+                T2Control    = T2 ~ Control,
+                levels = levels(trial$group))
+trial_hypr <- trial
+contrasts(trial_hypr$group) <- hypr::cmat(h)
+fit_hypr <- lm(score ~ group, data = trial_hypr)
+checked <- contrasts_onepred(fit_hypr, "group", hypotheses = hypr::hmat(h))
+```
+
+# The possible results
+
+Each declared hypothesis receives one of four results:
+
+| Status | Meaning |
+|:--|:--|
+| `matches` | The coefficient estimates the declared comparison. |
+| `rescaled` | It estimates the declared comparison multiplied by a positive factor. |
+| `reversed` | It estimates the declared comparison with reversed sign. |
+| `differs` | It estimates a different comparison, reported in the message. |
+
+The scale of the declared weights does not matter: `c(-1, 0.5, 0.5)` and `c(-2, 1, 1)` declare the same comparison. A `rescaled` result is not an error, but it tells how to read the coefficient. Under Helmert coding, for example, the coefficients are fractions of the plain differences:
+
+```{r helmert, message = 1:2}
+trial_helmert <- trial
+contrasts(trial_helmert$group) <- contr.helmert(3)
+fit_helmert <- lm(score ~ group, data = trial_helmert)
+plain_differences <- rbind("T1-Control"        = c(-1, 1, 0),
+                           "T2-Mean(Control,T1)" = c(-0.5, -0.5, 1))
+helmert <- contrasts_onepred(fit_helmert, "group", hypotheses = plain_differences)
+```
+
+`moplot_onepred(..., per_difference = TRUE)` rescales the lower panel so that it reports these plain differences.
+
+# Interactions
+
+For interactions, `hypotheses` is a named list with the declared comparisons of one or more factors. Because the hypothesis of an interaction coefficient is the Kronecker product of the hypotheses of its components, each interaction coefficient estimates the product of the declared comparisons when each declared component does. Factors that are not listed are not checked.
+
+```{r interaction, message = 1:3}
+cells <- data.frame(
+  treatment = factor(rep(c("Low", "Medium", "High"), 2), levels = c("Low", "Medium", "High")),
+  context = factor(rep(c("Baseline", "Enhanced"), each = 3)),
+  mu = c(5, 7, 3, 6, 10, 5))
+dat_int <- cells[rep(seq_len(6), each = 5), ]
+dat_int$outcome <- dat_int$mu + rep(c(-1, -0.5, 0, 0.5, 1), 6)
+
+intended_treatment <- rbind("Medium-Low"  = c(Low = -1, Medium = 1, High = 0),
+                            "High-Medium" = c(Low = 0, Medium = -1, High = 1))
+intended_context <- rbind("Enhanced-Baseline" = c(Baseline = -1, Enhanced = 1))
+
+contrasts(dat_int$treatment) <- MASS::ginv(intended_treatment)
+contrasts(dat_int$context) <- MASS::contr.sdif(2)
+model_int <- lm(outcome ~ treatment * context, data = dat_int)
+
+decomposition <- contrasts_multpred(
+  model_int,
+  hypotheses = list(treatment = intended_treatment, context = intended_context),
+  methodological_note = FALSE
+)
+attr(decomposition, "hypothesis_check")
+```
+
+`moplot_multpred()` accepts the same list and reports the result in its caption. For a single predictor, `contrasts_onepred()` and `moplot_onepred()` also accept the list form, for example `hypotheses = list(group = intended)`.
+
+# What the check does not do
+
+* It does not modify the coding or refit the model: the figures always show the comparisons that the coefficients estimate.
+* It does not choose a coding for you: the coding for a set of hypotheses is obtained with `MASS::ginv()` or **hypr**.
+* It requires one declared hypothesis per coefficient of each declared factor.

@@ -1,0 +1,193 @@
+---
+title: "Interactions among categorical predictors"
+output:
+  rmarkdown::html_vignette:
+    toc: true
+    toc_depth: 2
+vignette: >
+  %\VignetteIndexEntry{Interactions among categorical predictors}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  message = FALSE,
+  warning = TRUE,
+  fig.width = 9,
+  fig.height = 6,
+  fig.retina = 1,
+  fig.align = "center",
+  out.width = "100%"
+)
+library(MoPlot)
+```
+
+# Overview
+
+In a contrast-coded model, the columns of an interaction are products of the coded columns of the interacting factors. A two-way interaction coefficient is therefore a *difference of differences*: it asks whether a contrast on one factor changes across the levels, or contrast-defined groups, of the other. A three-way coefficient is a difference between two such differences, and so on.
+
+`moplot_multpred()` reconstructs this hierarchy from the fitted model and displays it; `contrasts_multpred()` returns the same decomposition as a table. This vignette assumes familiarity with the single-predictor case (`vignette("moplot-onepred", package = "MoPlot")`).
+
+| Argument | Purpose |
+|:--|:--|
+| `model`, `data` | The fitted model and, optionally, the data used to fit it. |
+| `interaction` | The interaction term to display, for example `"A:B:C"`. |
+| `coefficients` | Specific interaction coefficients to display. |
+| `interaction_info` | Print the available interactions and coefficients (default `TRUE`). |
+| `split_rule` | How the top-level grouping is chosen: `"last_variable"` (default), `"first_variable"`, `"lowest_complexity"`, or `"highest_complexity"`. |
+| `top_split` | The factor used for the top-level grouping; overrides `split_rule`. |
+| `estimate_type`, `prediction_scale` | As in `moplot_onepred()`. |
+| `coefficient_scale`, `per_difference` | As in `moplot_onepred()`. |
+| `hypotheses` | Intended comparisons of one or more factors (see the hypotheses vignette). |
+| `style` | `"minimal"` (default) or `"tree"`, which shows how the elementary differences are combined. |
+| `show_coef`, `caption`, `digits`, `base_size`, `panel_heights` | Display options. |
+
+By default, `moplot_multpred()` displays all coefficients of the highest-order interaction. If the model contains several interactions of the highest order, the term must be chosen through `interaction`.
+
+# A two-way interaction
+
+We simulate a design with a three-level factor `Task`, coded with Helmert contrasts, and a two-level factor `Session`, coded with sum contrasts.
+
+```{r two-way-data}
+set.seed(1)
+dat <- expand.grid(Task = factor(c("A", "B", "C")),
+                   Session = factor(c("First", "Second")),
+                   replicate = 1:40)
+dat$Score <- 3 + (dat$Task == "B") * 2 - (dat$Task == "C") +
+  (dat$Session == "Second") + 2 * (dat$Task == "C") * (dat$Session == "Second") +
+  rnorm(nrow(dat))
+
+contrasts(dat$Task) <- contr.helmert(3)
+contrasts(dat$Session) <- contr.sum(2)
+model_two <- lm(Score ~ Task * Session, data = dat)
+```
+
+The decomposition is returned by `contrasts_multpred()`. With `configuration = "semantic"`, each row describes the level or group of levels it represents:
+
+```{r two-way-table}
+decomposition <- contrasts_multpred(model_two, configuration = "semantic",
+                                    methodological_note = FALSE)
+decomposition[, c("coefficient", "split_side", "configuration_semantic",
+                  "estimate", "ci_low", "ci_high", "scale_factor")]
+```
+
+For each coefficient, the first two rows form the Helmert difference within one side of the sum contrast, and the last two within the other side; the coefficient equals `scale_factor` times the difference between these two differences.
+
+```{r two-way-plot, fig.cap = "Two-way interaction with Session as the top-level grouping."}
+moplot_multpred(model_two, interaction_info = FALSE, caption = FALSE)
+```
+
+## Orienting the decomposition
+
+The same coefficient can be read in two directions: as a change of the `Task` contrast across sessions, or as a change of the `Session` contrast across tasks. The default `split_rule = "last_variable"` uses the last factor of the interaction, here `Session`, as the top-level grouping. `split_rule = "first_variable"`, or `top_split = "Task"`, reverses it:
+
+```{r two-way-reversed, fig.cap = "The same interaction with Task as the top-level grouping."}
+moplot_multpred(model_two, top_split = "Task", interaction_info = FALSE, caption = FALSE)
+```
+
+The orientation changes how the components are organized, not the coefficient, its test, or the model.
+
+## Rescaled coefficients
+
+Helmert coding has scale factors different from one, and the scale factor of an interaction coefficient is the product of the scale factors of its components. With `per_difference = TRUE`, the lower panel reports the coefficients divided by their scale factors, so that each equals the displayed difference of differences:
+
+```{r two-way-per-difference, fig.cap = "Coefficients divided by their scale factors."}
+moplot_multpred(model_two, per_difference = TRUE, interaction_info = FALSE,
+                caption = FALSE)
+```
+
+# Selecting terms and coefficients
+
+`interaction_info = TRUE` prints the interaction terms of the model and the syntax that selects them. A term can be selected with `interaction`, and individual coefficients with `coefficients`:
+
+```{r selection, fig.cap = "A single interaction coefficient."}
+moplot_multpred(model_two, coefficients = "Task2:Session1", caption = FALSE)
+```
+
+# A custom coding
+
+Custom codings are decomposed in the same way. Here `Stimulus` has four levels and an orthogonal custom coding: `W` and `X` against `Y` and `Z`, `W` against `X`, and `Y` against `Z`.
+
+```{r custom, fig.width = 12, fig.height = 6.5, fig.cap = "Interaction between a sum-coded factor and a custom-coded factor."}
+set.seed(2)
+dat_custom <- expand.grid(Group = factor(c("A", "B", "C")),
+                          Stimulus = factor(c("W", "X", "Y", "Z")),
+                          replicate = 1:20)
+dat_custom$y <- 5 + (dat_custom$Group == "B") * 2 +
+  c(0, 1, 2, -2)[as.integer(dat_custom$Stimulus)] +
+  3 * (dat_custom$Group == "C") * (dat_custom$Stimulus == "Y") +
+  rnorm(nrow(dat_custom))
+
+contrasts(dat_custom$Group) <- contr.sum(3)
+contrasts(dat_custom$Stimulus) <- cbind(WX_vs_YZ = c(1, 1, -1, -1),
+                                        W_vs_X = c(1, -1, 0, 0),
+                                        Y_vs_Z = c(0, 0, 1, -1))
+model_custom <- lm(y ~ Stimulus * Group, data = dat_custom)
+
+moplot_multpred(model_custom, coefficients = c("StimulusWX_vs_YZ:Group1",
+                                               "StimulusY_vs_Z:Group1"),
+                interaction_info = FALSE, base_size = 11, caption = FALSE)
+```
+
+As for a single predictor, the comparisons are recovered from the hypothesis matrix of each coding; for non-orthogonal codings, the hypotheses vignette shows how to check them.
+
+# A three-way interaction
+
+Higher-order interactions follow the same logic recursively. With `style = "tree"`, the figure shows how the elementary differences ($\Delta_1, \Delta_2, \ldots$) are combined into the final interaction contrast, marked by a cross.
+
+```{r three-way, fig.width = 10, fig.height = 7, fig.cap = "Three-way interaction in tree style."}
+set.seed(3)
+dat_three <- expand.grid(A = factor(c("a1", "a2", "a3")),
+                         B = factor(c("b1", "b2")),
+                         C = factor(c("c1", "c2")),
+                         replicate = 1:20)
+dat_three$y <- 5 + (dat_three$A == "a2") + 1.5 * (dat_three$A == "a3") * (dat_three$B == "b2") +
+  (dat_three$C == "c2") * (dat_three$B == "b2") +
+  2 * (dat_three$A == "a3") * (dat_three$B == "b2") * (dat_three$C == "c2") +
+  rnorm(nrow(dat_three))
+
+contrasts(dat_three$A) <- contr.helmert(3)
+contrasts(dat_three$B) <- contr.sum(2)
+contrasts(dat_three$C) <- contr.sum(2)
+model_three <- lm(y ~ A * B * C, data = dat_three)
+
+moplot_multpred(model_three, style = "tree", interaction_info = FALSE, caption = FALSE)
+```
+
+# A generalized linear mixed model
+
+For generalized and mixed models, the quantities in the upper panel are model-based predictions on a reference grid: numeric predictors at their mean, other factors averaged with equal weights. A factor that interacts with the displayed variables is instead held at the levels at which the coefficient is defined (the reference level under treatment coding, the balanced average under sum coding). On the link scale, the displayed differences of differences reconstruct the coefficients exactly.
+
+```{r glmm, fig.cap = "Predicted probabilities and odds ratios for a two-way interaction in a binomial mixed model."}
+set.seed(4)
+dat_glmm <- expand.grid(Subject = factor(1:40),
+                        Condition = factor(c("Control", "Treatment")),
+                        Phase = factor(c("Pre", "Post"), levels = c("Pre", "Post")),
+                        trial = 1:6)
+eta <- -0.5 + 0.8 * (dat_glmm$Condition == "Treatment") * (dat_glmm$Phase == "Post") +
+  rnorm(40, sd = 0.7)[as.integer(dat_glmm$Subject)]
+dat_glmm$Correct <- rbinom(nrow(dat_glmm), 1, plogis(eta))
+
+contrasts(dat_glmm$Condition) <- contr.sum(2)
+contrasts(dat_glmm$Phase) <- MASS::contr.sdif(2)
+model_glmm <- lme4::glmer(Correct ~ Condition * Phase + (1 | Subject),
+                          family = binomial, data = dat_glmm)
+
+moplot_multpred(model_glmm, coefficient_scale = "interpreted",
+                interaction_info = FALSE, caption = FALSE)
+```
+
+The upper panel shows probabilities, whereas the coefficient is a difference of differences on the logit scale: an interaction on the probability scale is not the same as an interaction on the logit scale. With `prediction_scale = "link"`, the upper panel is drawn on the logit scale, where the displayed contrast reconstructs the coefficient exactly.
+
+If a factor of the coefficient interacts with a numeric predictor, the coefficient refers to the value zero of that predictor, whereas the predictions fix it at its mean; MoPlot then warns that the displayed comparisons do not reconstruct the coefficient. Centring the numeric predictor makes the two coincide.
+
+# Captions
+
+As for one predictor, each figure is accompanied by a caption that describes the hierarchy, the coding of each factor, and how to read the figure:
+
+```{r caption, fig.show = "hide"}
+figure <- moplot_multpred(model_two, interaction_info = FALSE)
+```

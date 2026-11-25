@@ -1,0 +1,52 @@
+Package: MoPlot
+Title: Visualize and Interpret Contrasts in Regression Models
+Version: 0.1.0
+Authors@R: c(
+    person("Umberto", "Granziol", , "umberto.granziol@unipd.it",
+           role = c("aut", "cre"),
+           comment = c(ORCID = "0000-0002-6286-6569",
+                       affiliation = "University of Padova")),
+    person("Stefano", "Dalla Bona",
+           role = "aut",
+           comment = c(ORCID = "0009-0006-7749-3642",
+                       affiliation = "University of Padova")),
+    person("Lorenzo", "Atzeni",
+           role = "aut",
+           comment = c(ORCID = "0009-0006-5307-9201",
+                       affiliation = "University of Padova")),
+    person("Marianna", "Musa",
+           role = "aut",
+           comment = c(ORCID = "0009-0000-8791-1218",
+                       affiliation = "University of Padova"))
+    )
+Description: Visualizes and interprets the contrasts used to code categorical
+    predictors in fitted regression models. Each coefficient is translated
+    into the comparison between the levels, or groups of levels, that it
+    estimates, derived from the hypothesis matrix of the contrast coding, and
+    is displayed together with the coefficient, its confidence interval, and
+    an approximate effect size. Interactions among categorical predictors are
+    decomposed into differences of differences. Supports models fitted with
+    'stats', 'lme4', 'lmerTest', 'nlme', and 'glmmTMB'.
+License: MIT + file LICENSE
+Encoding: UTF-8
+Imports: cli, effectsize, ggplot2 (>= 4.0.0), glmmTMB, grid, lme4,
+        lmerTest, MASS, nlme, parameters, patchwork, reformulas, tibble
+Suggests: hypr, knitr, rmarkdown, testthat (>= 3.0.0), vdiffr
+VignetteBuilder: knitr
+Config/testthat/edition: 3
+Config/roxygen2/version: 8.1.0
+NeedsCompilation: no
+Packaged: 2026-11-04 10:07:01 UTC; LABB08
+Author: Umberto Granziol [aut, cre] (ORCID:
+    <https://orcid.org/0000-0002-6286-6569>, affiliation: University of
+    Padova),
+  Stefano Dalla Bona [aut] (ORCID:
+    <https://orcid.org/0009-0006-7749-3642>, affiliation: University of
+    Padova),
+  Lorenzo Atzeni [aut] (ORCID: <https://orcid.org/0009-0006-5307-9201>,
+    affiliation: University of Padova),
+  Marianna Musa [aut] (ORCID: <https://orcid.org/0009-0000-8791-1218>,
+    affiliation: University of Padova)
+Maintainer: Umberto Granziol <umberto.granziol@unipd.it>
+Repository: CRAN
+Date/Publication: 2026-11-25 13:10:02 UTC

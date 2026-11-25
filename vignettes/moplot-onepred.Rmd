@@ -1,0 +1,338 @@
+---
+title: "Introduction and one categorical predictor"
+output:
+  rmarkdown::html_vignette:
+    toc: true
+    toc_depth: 2
+vignette: >
+  %\VignetteIndexEntry{Introduction and one categorical predictor}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  message = FALSE,
+  warning = TRUE,
+  fig.width = 8,
+  fig.height = 6,
+  fig.retina = 1,
+  fig.align = "center",
+  out.width = "100%"
+)
+library(MoPlot)
+set.seed(622)
+```
+
+# Introduction
+
+MoPlot makes explicit the comparisons estimated by the coefficients of categorical predictors in fitted regression models. From the contrast coding of each factor it derives the comparison behind every coefficient, computes the quantities that define it, and displays them next to the coefficient, with its confidence interval and an approximate Cohen's *d*. It supports models fitted with `lm()`, `glm()`, **lme4**, **lmerTest**, **nlme**, and **glmmTMB** (conditional component).
+
+The package comes with three vignettes:
+
+* this one introduces `moplot_onepred()` and `contrasts_onepred()` for a single categorical predictor;
+* `vignette("moplot-interactions", package = "MoPlot")` covers interactions among categorical predictors;
+* `vignette("moplot-hypotheses", package = "MoPlot")` explains how the comparisons are recovered from the coding and how to check them against the comparisons you intended.
+
+All data are included with R or simulated within the examples.
+
+# Installation
+
+The released version can be installed from CRAN:
+
+```{r installation, eval = FALSE}
+install.packages("MoPlot")
+```
+
+# The workflow
+
+The examples follow the same sequence: prepare the factor, assign its contrasts with `contrasts()`, fit the model, and call `moplot_onepred()`. Contrasts must be assigned **before** fitting the model. Each example uses its own copy of the data, so that changing the coding does not affect earlier examples.
+
+`moplot_onepred()` takes a fitted model and the name of a factor. The model may contain other predictors, but the focal factor must not be part of an interaction (interactions are handled by `moplot_multpred()`). The upper panel displays the quantities compared by each contrast, with confidence intervals; dashed segments connect the two sides of each comparison. The lower panel displays the corresponding coefficient, its confidence interval, and an approximate Cohen's *d*.
+
+| Argument | Purpose |
+|:--|:--|
+| `model`, `predictor` | The fitted model and the name of the focal factor. |
+| `data` | Optional data used to fit the model; recovered from the model call when `NULL`. |
+| `estimate_type` | `"auto"` (default), `"observed"`, or `"predicted"`. |
+| `prediction_scale` | `"response"` or `"link"` for model-based estimates. |
+| `coefficient_scale` | `"model"` or `"interpreted"` (for example odds ratios) in the lower panel. |
+| `per_difference` | Divide each coefficient by its scale factor, so that it equals the displayed difference. |
+| `bounds` | Natural range of a response analyzed with a Gaussian model, such as `c(1, 7)`. |
+| `hypotheses` | Intended comparisons to check (see the hypotheses vignette). |
+| `show_coef`, `show_data` | Show the lower panel (default `TRUE`) and the raw observations (default `FALSE`). |
+| `style` | `"minimal"` (grayscale) or `"publication"` (one colour per contrast). |
+| `conf_level`, `sig_level` | Confidence level (0.95) and significance threshold (0.05). |
+| `caption` | Print a caption describing the figure (default `TRUE`). |
+
+# Treatment coding
+
+Treatment coding compares each level with a reference level. We use sepal length from the `iris` data, with `setosa` as the reference.
+
+```{r treatment-model}
+dat_iris <- datasets::iris
+contrasts(dat_iris$Species) <- contr.treatment(3)
+model_treatment <- lm(Sepal.Length ~ Species, data = dat_iris)
+```
+
+`model_contrast_table()` summarizes the variables of the model and identifies the coding of each factor:
+
+```{r treatment-table}
+model_contrast_table(model_treatment, type = "x")
+```
+
+The comparisons can first be displayed without the coefficient panel:
+
+```{r treatment-basic, fig.height = 4.3, fig.cap = "Observed sepal-length means under treatment coding."}
+moplot_onepred(model_treatment, "Species", show_coef = FALSE, caption = FALSE)
+```
+
+The first contrast compares `versicolor` with `setosa`, the second `virginica` with `setosa`. Each comparison has its own pair of positions, so the reference level appears twice; this provides an endpoint for each comparison and does not represent additional observations. Long labels are abbreviated, and the key is reported in the caption.
+
+The numbers behind the upper panel are returned by `contrasts_onepred()`:
+
+```{r treatment-numbers}
+treatment_comparisons <- contrasts_onepred(model_treatment, "Species")
+treatment_comparisons[, c("Contrast", "Levels", "Estimate", "CI_low", "CI_high",
+                          "Significance", "Scale_factor")]
+```
+
+Adding the raw observations and the coefficient panel, in the `"publication"` style:
+
+```{r treatment-complete, fig.cap = "Treatment contrasts with raw observations and the aligned coefficient panel."}
+moplot_onepred(model_treatment, "Species", show_data = TRUE,
+               style = "publication", caption = FALSE)
+```
+
+The cross marks the midpoint of each comparison, and each coefficient in the lower panel is aligned below it. An asterisk marks a coefficient whose p-value is below `sig_level`; colours identify contrasts, not significance. The intervals around the means and those around the coefficients refer to different quantities: overlapping mean intervals are not a test of the coefficient. Cohen's *d* is an approximate conversion of the coefficient test statistic.
+
+The reference level does not have to be the first one. Under `contr.treatment(3, base = 3)`, or `contr.SAS()`, the comparisons are made against `virginica`, and MoPlot recognizes the coding as treatment coding:
+
+```{r treatment-base}
+dat_base <- dat_iris
+contrasts(dat_base$Species) <- contr.treatment(3, base = 3)
+base_comparisons <- contrasts_onepred(lm(Sepal.Length ~ Species, data = dat_base), "Species")
+unique(base_comparisons[, c("Contrast", "Levels")])
+```
+
+# Sum coding
+
+Sum coding compares each level with the unweighted mean of all levels, the *Grand Mean*:
+
+```{r sum-model, fig.cap = "Sum contrasts: each species against the Grand Mean."}
+dat_sum <- dat_iris
+contrasts(dat_sum$Species) <- contr.sum(3)
+model_sum <- lm(Sepal.Length ~ Species, data = dat_sum)
+moplot_onepred(model_sum, "Species", show_data = TRUE,
+               style = "publication", caption = FALSE)
+```
+
+Each species contributes equally to the Grand Mean, so with unequal group sizes it differs from the mean of all observations. Raw observations are shown only at the individual levels. Each coefficient is the corresponding species mean minus the Grand Mean.
+
+# Helmert coding and scale factors
+
+Helmert coding compares each level with the mean of the preceding levels.
+
+```{r helmert-model}
+set.seed(120)
+dat_groups <- data.frame(Group = factor(rep(c("G1", "G2", "G3", "G4"), each = 30)))
+dat_groups$Score <- rnorm(120, mean = rep(c(116, 136, 113, 119), each = 30), sd = 10)
+
+dat_helmert <- dat_groups
+contrasts(dat_helmert$Group) <- contr.helmert(4)
+model_helmert <- lm(Score ~ Group, data = dat_helmert)
+```
+
+```{r helmert-plot, fig.cap = "Helmert contrasts. Each coefficient is a fraction of the displayed difference."}
+moplot_onepred(model_helmert, "Group", show_data = TRUE,
+               style = "publication", caption = FALSE)
+```
+
+The comparisons are `G2` against `G1`, `G3` against `Mean(G1, G2)`, and `G4` against `Mean(G1, G2, G3)`. A label `Mean(...)` denotes the equally weighted mean of the listed levels.
+
+With `contr.helmert()`, each coefficient equals a *scale factor* $s$ times the displayed difference: $s = 1/2$, $1/3$, and $1/4$ for the three contrasts. The scale factors are reported in the `Scale_factor` column of `contrasts_onepred()` and in the caption. With `per_difference = TRUE`, the lower panel shows the coefficients divided by $s$, so that both panels refer to the same difference; test statistics, p-values, and Cohen's *d* are unchanged.
+
+```{r helmert-per-difference, fig.cap = "The same Helmert contrasts with per_difference = TRUE: the lower panel now equals the displayed differences."}
+moplot_onepred(model_helmert, "Group", per_difference = TRUE,
+               style = "publication", caption = FALSE)
+```
+
+Treatment, sum, and sliding-difference codings have $s = 1$.
+
+# Reverse Helmert coding
+
+Reverse Helmert coding compares each level with the mean of the subsequent levels. MoPlot provides `reverse_helmert()` to create it.
+
+```{r reverse-helmert, fig.cap = "Reverse Helmert contrasts."}
+dat_reverse <- dat_groups
+contrasts(dat_reverse$Group) <- reverse_helmert(4)
+moplot_onepred(lm(Score ~ Group, data = dat_reverse), "Group",
+               style = "publication", caption = FALSE)
+```
+
+The comparisons are `G1` against `Mean(G2, G3, G4)`, `G2` against `Mean(G3, G4)`, and `G3` against `G4`, with scale factors $1/4$, $1/3$, and $1/2$.
+
+# Sliding differences
+
+Sliding differences compare adjacent levels, following the order of the levels. The coding is provided by `MASS::contr.sdif()`.
+
+```{r sliding, fig.cap = "Sliding differences between adjacent groups."}
+dat_sliding <- dat_groups
+contrasts(dat_sliding$Group) <- MASS::contr.sdif(4)
+moplot_onepred(lm(Score ~ Group, data = dat_sliding), "Group",
+               style = "publication", caption = FALSE)
+```
+
+The coefficients are `G2 - G1`, `G3 - G2`, and `G4 - G3`. Because each intermediate level is the upper side of one comparison and the lower side of the next, the comparisons form a chain and each level is drawn once.
+
+# Custom coding
+
+A custom coding matrix defines comparisons chosen for a particular analysis. The following matrix has three orthogonal columns: the first two groups against the last two, `G1` against `G2`, and `G3` against `G4`.
+
+```{r custom, fig.cap = "Comparisons defined by an orthogonal custom coding."}
+dat_custom <- dat_groups
+contrasts(dat_custom$Group) <- cbind(
+  first_vs_last = c(1, 1, -1, -1),
+  within_first  = c(1, -1, 0, 0),
+  within_last   = c(0, 0, 1, -1)
+)
+moplot_onepred(lm(Score ~ Group, data = dat_custom), "Group",
+               style = "publication", caption = FALSE)
+```
+
+With this matrix each coefficient is half of the displayed difference ($s = 1/2$). For custom codings, the comparisons are not read from the signs of the coding columns but from the *hypothesis matrix* implied by the coding. The two coincide for orthogonal codings such as this one, but not in general: a non-orthogonal coding can estimate comparisons different from those its columns suggest. MoPlot then displays the comparisons actually estimated, labels groups with unequal weights as `W(A .20, C .80)`, and prints a note. The hypotheses vignette shows how to declare the intended comparisons and check them.
+
+# Ordered factors and polynomial contrasts
+
+For an ordered factor, R uses polynomial contrasts by default. `moplot_onepred()` then displays one panel per trend component (linear, quadratic, and so forth), with the curve that each component implies around the level estimates.
+
+```{r polynomial, fig.height = 6.5, fig.cap = "Linear and quadratic components of an ordered factor."}
+set.seed(7)
+dat_dose <- data.frame(
+  Dose = ordered(rep(c("Low", "Medium", "High"), each = 30),
+                 levels = c("Low", "Medium", "High"))
+)
+dat_dose$Response <- rnorm(90, mean = c(10, 14, 15)[as.integer(dat_dose$Dose)], sd = 3)
+moplot_onepred(lm(Response ~ Dose, data = dat_dose), "Dose", caption = FALSE)
+```
+
+Unequally spaced levels can be coded with `contr.poly(scores = ...)`; the levels are then placed according to their scores.
+
+# Model-based estimates
+
+With `estimate_type = "auto"`, the default, observed means are displayed only when they answer the same question as the model: the fixed part contains only the focal factor, the model has no random effects, and generalized models are displayed on the response scale. Otherwise, MoPlot displays model-based predictions.
+
+Predictions are computed on a *reference grid*: numeric predictors are fixed at their mean, and the other factors are averaged with equal weights. On the linear-predictor scale, the displayed differences then reconstruct the coefficients exactly, whatever the distribution of the covariates across groups.
+
+```{r predicted, fig.cap = "Predicted means at the mean of the covariate."}
+set.seed(21)
+dat_cov <- dat_groups
+dat_cov$Age <- rnorm(120, mean = 40 + 5 * as.integer(dat_cov$Group), sd = 8)
+dat_cov$Score <- dat_cov$Score + 0.5 * dat_cov$Age
+contrasts(dat_cov$Group) <- MASS::contr.sdif(4)
+model_cov <- lm(Score ~ Group + Age, data = dat_cov)
+
+moplot_onepred(model_cov, "Group", style = "publication", caption = FALSE)
+```
+
+Because `Age` differs between groups, the observed means would mix the group differences with the age differences; the predicted means are compared at the same age, and their differences equal the coefficients:
+
+```{r predicted-check}
+predicted <- contrasts_onepred(model_cov, "Group")
+attr(predicted, "estimate_type")
+differences <- predicted$Estimate[c(1, 3, 5)] - predicted$Estimate[c(2, 4, 6)]
+round(rbind(displayed = differences, coefficients = coef(model_cov)[2:4]), 3)
+```
+
+The quantities in the upper panel are always confidence intervals for estimated means, not prediction intervals for new observations.
+
+# Generalized and mixed-effects models
+
+## Logistic regression
+
+For a binomial model with a logit link, the response-scale predictions are probabilities, and `coefficient_scale = "interpreted"` displays the coefficients as odds ratios.
+
+```{r binomial, fig.cap = "Predicted probabilities above and odds ratios below."}
+set.seed(330)
+dat_binomial <- data.frame(Group = factor(rep(c("G1", "G2", "G3"), each = 80)))
+dat_binomial$Success <- rbinom(240, size = 1, prob = rep(c(0.25, 0.50, 0.70), each = 80))
+model_binomial <- glm(Success ~ Group, family = binomial, data = dat_binomial)
+
+moplot_onepred(model_binomial, "Group", estimate_type = "predicted",
+               coefficient_scale = "interpreted", style = "publication",
+               caption = FALSE)
+```
+
+An odds ratio is a ratio of odds, not a difference between probabilities. With `prediction_scale = "link"` the upper panel shows log-odds, where the displayed differences equal the coefficients. Confidence intervals on the response scale are computed on the link scale and transformed back, so they always remain between 0 and 1. For logistic models, Cohen's *d* is converted from the log odds ratio (Chinn, 2000).
+
+## Linear mixed-effects models
+
+```{r mixed, fig.cap = "Population-level predictions from a linear mixed-effects model."}
+set.seed(440)
+dat_mixed <- expand.grid(Subject = factor(seq_len(24)),
+                         Group = factor(c("G1", "G2", "G3")),
+                         Trial = seq_len(5))
+subject_intercept <- rnorm(24, sd = 1.5)
+dat_mixed$Score <- 10 + c(0, 1.5, 3)[as.integer(dat_mixed$Group)] +
+  subject_intercept[as.integer(dat_mixed$Subject)] + rnorm(nrow(dat_mixed))
+model_mixed <- lme4::lmer(Score ~ Group + (1 | Subject), data = dat_mixed)
+
+moplot_onepred(model_mixed, "Group", style = "publication", caption = FALSE)
+```
+
+The predictions use the fixed effects only, so they are population-level estimates. For linear mixed models, p-values, confidence intervals, and Cohen's *d* use Satterthwaite degrees of freedom when **lmerTest** is installed.
+
+## Generalized linear mixed-effects models
+
+```{r glmm, fig.cap = "Population-level probabilities and odds ratios from a binomial mixed model."}
+set.seed(550)
+dat_glmm <- dat_mixed
+eta <- -0.8 + c(0, 0.6, 1.2)[as.integer(dat_glmm$Group)] +
+  rnorm(24, sd = 0.8)[as.integer(dat_glmm$Subject)]
+dat_glmm$Success <- rbinom(nrow(dat_glmm), size = 1, prob = plogis(eta))
+model_glmm <- lme4::glmer(Success ~ Group + (1 | Subject),
+                          family = binomial, data = dat_glmm)
+
+moplot_onepred(model_glmm, "Group", coefficient_scale = "interpreted",
+               style = "publication", caption = FALSE)
+```
+
+The probabilities are computed with the random effects set to zero; they are not averaged over the distribution of the random effects.
+
+# Responses with a natural range
+
+Outcomes such as Likert scores have a known range but are often analyzed with Gaussian models, whose symmetric intervals can cross that range. The argument `bounds` declares the range, and the intervals are then computed on a transformed scale so that they remain within it; the estimates are unchanged.
+
+```{r bounds, fig.height = 4.3, fig.cap = "Intervals of a 1-7 rating kept within the scale with bounds = c(1, 7)."}
+set.seed(3)
+dat_likert <- data.frame(Group = factor(rep(c("A", "B", "C"), each = 8)))
+dat_likert$Rating <- c(sample(3:5, 8, TRUE), sample(4:6, 8, TRUE), c(7, 7, 7, 7, 7, 6, 7, 5))
+contrasts(dat_likert$Group) <- contr.sum(3)
+moplot_onepred(lm(Rating ~ Group, data = dat_likert), "Group",
+               bounds = c(1, 7), show_coef = FALSE, caption = FALSE)
+```
+
+When many observations lie at a bound, a model suited to the scale of the response, such as an ordinal model, is more appropriate; `bounds` corrects the representation of uncertainty, not the model.
+
+# Captions, coefficients, and export
+
+Each figure is accompanied by a caption, printed in the console, that states the coding, what the figure displays, and how to read it. It can be used as a figure caption or as alternative text.
+
+```{r caption, fig.show = "hide"}
+figure <- moplot_onepred(model_helmert, "Group")
+```
+
+The coefficients, their interpreted transformations, and Cohen's *d* are returned by `extract_param()`:
+
+```{r extract-param}
+extract_param(model_binomial)[, c("Parameter", "Estimate", "Interpreted_Estimate",
+                                  "Estimate_type", "p", "d", "d_method")]
+```
+
+Finally, `moplot_export()` writes a figure to PDF, PNG, or TIFF at dimensions recommended from its complexity:
+
+```{r export, eval = FALSE}
+moplot_export(figure, "helmert.pdf")
+```

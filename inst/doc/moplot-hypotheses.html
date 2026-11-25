@@ -1,0 +1,643 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+
+<meta charset="utf-8" />
+<meta name="generator" content="pandoc" />
+<meta http-equiv="X-UA-Compatible" content="IE=EDGE" />
+
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+
+
+
+<title>Checking the comparisons you intended</title>
+
+<script>// Pandoc 2.9 adds attributes on both header and div. We remove the former (to
+// be compatible with the behavior of Pandoc < 2.8).
+document.addEventListener('DOMContentLoaded', function(e) {
+  var hs = document.querySelectorAll("div.section[class*='level'] > :first-child");
+  var i, h, a;
+  for (i = 0; i < hs.length; i++) {
+    h = hs[i];
+    if (!/^h[1-6]$/i.test(h.tagName)) continue;  // it should be a header h1-h6
+    a = h.attributes;
+    while (a.length > 0) h.removeAttribute(a[0].name);
+  }
+});
+</script>
+
+<style type="text/css">
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+span.underline{text-decoration: underline;}
+div.column{display: inline-block; vertical-align: top; width: 50%;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+</style>
+
+
+
+<style type="text/css">
+code {
+white-space: pre;
+}
+.sourceCode {
+overflow: visible;
+}
+</style>
+<style type="text/css" data-origin="pandoc">
+html { -webkit-text-size-adjust: 100%; }
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+{ counter-reset: source-line 0; }
+pre.numberSource code > span
+{ position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+{ content: counter(source-line);
+position: relative; left: -1em; text-align: right; vertical-align: baseline;
+border: none; display: inline-block;
+-webkit-touch-callout: none; -webkit-user-select: none;
+-khtml-user-select: none; -moz-user-select: none;
+-ms-user-select: none; user-select: none;
+padding: 0 4px; width: 4em;
+color: #aaaaaa;
+}
+pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa; padding-left: 4px; }
+div.sourceCode
+{ }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+code span.al { color: #ff0000; font-weight: bold; } 
+code span.an { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.at { color: #7d9029; } 
+code span.bn { color: #40a070; } 
+code span.bu { color: #008000; } 
+code span.cf { color: #007020; font-weight: bold; } 
+code span.ch { color: #4070a0; } 
+code span.cn { color: #880000; } 
+code span.co { color: #60a0b0; font-style: italic; } 
+code span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.do { color: #ba2121; font-style: italic; } 
+code span.dt { color: #902000; } 
+code span.dv { color: #40a070; } 
+code span.er { color: #ff0000; font-weight: bold; } 
+code span.ex { } 
+code span.fl { color: #40a070; } 
+code span.fu { color: #06287e; } 
+code span.im { color: #008000; font-weight: bold; } 
+code span.in { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.kw { color: #007020; font-weight: bold; } 
+code span.op { color: #666666; } 
+code span.ot { color: #007020; } 
+code span.pp { color: #bc7a00; } 
+code span.sc { color: #4070a0; } 
+code span.ss { color: #bb6688; } 
+code span.st { color: #4070a0; } 
+code span.va { color: #19177c; } 
+code span.vs { color: #4070a0; } 
+code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } 
+</style>
+<script>
+// apply pandoc div.sourceCode style to pre.sourceCode instead
+(function() {
+  var sheets = document.styleSheets;
+  for (var i = 0; i < sheets.length; i++) {
+    if (sheets[i].ownerNode.dataset["origin"] !== "pandoc") continue;
+    try { var rules = sheets[i].cssRules; } catch (e) { continue; }
+    var j = 0;
+    while (j < rules.length) {
+      var rule = rules[j];
+      // check if there is a div.sourceCode rule
+      if (rule.type !== rule.STYLE_RULE || rule.selectorText !== "div.sourceCode") {
+        j++;
+        continue;
+      }
+      var style = rule.style.cssText;
+      // check if color or background-color is set
+      if (rule.style.color === '' && rule.style.backgroundColor === '') {
+        j++;
+        continue;
+      }
+      // replace div.sourceCode by a pre.sourceCode rule
+      sheets[i].deleteRule(j);
+      sheets[i].insertRule('pre.sourceCode{' + style + '}', j);
+    }
+  }
+})();
+</script>
+
+
+
+
+<style type="text/css">body {
+background-color: #fff;
+margin: 1em auto;
+max-width: 700px;
+overflow: visible;
+padding-left: 2em;
+padding-right: 2em;
+font-family: "Open Sans", "Helvetica Neue", Helvetica, Arial, sans-serif;
+font-size: 14px;
+line-height: 1.35;
+}
+#TOC {
+clear: both;
+margin: 0 0 10px 10px;
+padding: 4px;
+width: 400px;
+border: 1px solid #CCCCCC;
+border-radius: 5px;
+background-color: #f6f6f6;
+font-size: 13px;
+line-height: 1.3;
+}
+#TOC .toctitle {
+font-weight: bold;
+font-size: 15px;
+margin-left: 5px;
+}
+#TOC ul {
+padding-left: 40px;
+margin-left: -1.5em;
+margin-top: 5px;
+margin-bottom: 5px;
+}
+#TOC ul ul {
+margin-left: -2em;
+}
+#TOC li {
+line-height: 16px;
+}
+table {
+margin: 1em auto;
+border-width: 1px;
+border-color: #DDDDDD;
+border-style: outset;
+border-collapse: collapse;
+}
+table th {
+border-width: 2px;
+padding: 5px;
+border-style: inset;
+}
+table td {
+border-width: 1px;
+border-style: inset;
+line-height: 18px;
+padding: 5px 5px;
+}
+table, table th, table td {
+border-left-style: none;
+border-right-style: none;
+}
+table thead, table tr.even {
+background-color: #f7f7f7;
+}
+p {
+margin: 0.5em 0;
+}
+blockquote {
+background-color: #f6f6f6;
+padding: 0.25em 0.75em;
+}
+hr {
+border-style: solid;
+border: none;
+border-top: 1px solid #777;
+margin: 28px 0;
+}
+dl {
+margin-left: 0;
+}
+dl dd {
+margin-bottom: 13px;
+margin-left: 13px;
+}
+dl dt {
+font-weight: bold;
+}
+ul {
+margin-top: 0;
+}
+ul li {
+list-style: circle outside;
+}
+ul ul {
+margin-bottom: 0;
+}
+pre, code {
+background-color: #f7f7f7;
+border-radius: 3px;
+color: #333;
+white-space: pre-wrap; 
+}
+pre {
+border-radius: 3px;
+margin: 5px 0px 10px 0px;
+padding: 10px;
+}
+pre:not([class]) {
+background-color: #f7f7f7;
+}
+code {
+font-family: Consolas, Monaco, 'Courier New', monospace;
+font-size: 85%;
+}
+p > code, li > code {
+padding: 2px 0px;
+}
+div.figure {
+text-align: center;
+}
+img {
+background-color: #FFFFFF;
+padding: 2px;
+border: 1px solid #DDDDDD;
+border-radius: 3px;
+border: 1px solid #CCCCCC;
+margin: 0 5px;
+}
+h1 {
+margin-top: 0;
+font-size: 35px;
+line-height: 40px;
+}
+h2 {
+border-bottom: 4px solid #f7f7f7;
+padding-top: 10px;
+padding-bottom: 2px;
+font-size: 145%;
+}
+h3 {
+border-bottom: 2px solid #f7f7f7;
+padding-top: 10px;
+font-size: 120%;
+}
+h4 {
+border-bottom: 1px solid #f7f7f7;
+margin-left: 8px;
+font-size: 105%;
+}
+h5, h6 {
+border-bottom: 1px solid #ccc;
+font-size: 105%;
+}
+a {
+color: #0033dd;
+text-decoration: none;
+}
+a:hover {
+color: #6666ff; }
+a:visited {
+color: #800080; }
+a:visited:hover {
+color: #BB00BB; }
+a[href^="http:"] {
+text-decoration: underline; }
+a[href^="https:"] {
+text-decoration: underline; }
+
+code > span.kw { color: #555; font-weight: bold; } 
+code > span.dt { color: #902000; } 
+code > span.dv { color: #40a070; } 
+code > span.bn { color: #d14; } 
+code > span.fl { color: #d14; } 
+code > span.ch { color: #d14; } 
+code > span.st { color: #d14; } 
+code > span.co { color: #888888; font-style: italic; } 
+code > span.ot { color: #007020; } 
+code > span.al { color: #ff0000; font-weight: bold; } 
+code > span.fu { color: #900; font-weight: bold; } 
+code > span.er { color: #a61717; background-color: #e3d2d2; } 
+</style>
+
+
+
+
+</head>
+
+<body>
+
+
+
+
+<h1 class="title toc-ignore">Checking the comparisons you intended</h1>
+
+
+<div id="TOC">
+<ul>
+<li><a href="#coding-matrices-and-hypothesis-matrices" id="toc-coding-matrices-and-hypothesis-matrices">Coding matrices and
+hypothesis matrices</a></li>
+<li><a href="#an-example-of-a-coding-that-does-not-say-what-it-seems" id="toc-an-example-of-a-coding-that-does-not-say-what-it-seems">An
+example of a coding that does not say what it seems</a></li>
+<li><a href="#declaring-the-intended-comparisons" id="toc-declaring-the-intended-comparisons">Declaring the intended
+comparisons</a></li>
+<li><a href="#obtaining-the-coding-for-the-intended-comparisons" id="toc-obtaining-the-coding-for-the-intended-comparisons">Obtaining the
+coding for the intended comparisons</a></li>
+<li><a href="#the-possible-results" id="toc-the-possible-results">The
+possible results</a></li>
+<li><a href="#interactions" id="toc-interactions">Interactions</a></li>
+<li><a href="#what-the-check-does-not-do" id="toc-what-the-check-does-not-do">What the check does not do</a></li>
+</ul>
+</div>
+
+<div id="coding-matrices-and-hypothesis-matrices" class="section level1">
+<h1>Coding matrices and hypothesis matrices</h1>
+<p>The matrix that R stores for a factor, set with
+<code>contrasts()</code>, is the <em>coding matrix</em> <span class="math inline">\(C\)</span>: its columns code the factor in the
+model matrix. What the coefficients estimate is described by a different
+matrix, the <em>hypothesis matrix</em> <span class="math inline">\(H\)</span>, whose rows state the combination of
+level means estimated by each coefficient. For a factor with <span class="math inline">\(k\)</span> levels and <span class="math inline">\(k - 1\)</span> contrasts, the level means satisfy
+<span class="math inline">\(\mu = [\mathbf{1}, C]\,\beta\)</span>, so
+that</p>
+<p><span class="math display">\[
+\beta = H\mu, \qquad H = [\mathbf{1}, C]^{-1}.
+\]</span></p>
+<p>MoPlot always derives the compared levels from <span class="math inline">\(H\)</span>, never from the signs of <span class="math inline">\(C\)</span>. For standard codings, the two readings
+agree up to sign and scale. For orthogonal custom codings they agree
+too. For non-orthogonal custom codings, however, they can differ, and a
+coding written from the intended hypotheses can estimate different
+comparisons.</p>
+<p>Each row of <span class="math inline">\(H\)</span> can be written as
+<span class="math inline">\(h_j = s_j (w_j^{+} - w_j^{-})\)</span>, two
+groups of levels with weights summing to one and a scale factor <span class="math inline">\(s_j\)</span>: the coefficient equals <span class="math inline">\(s_j\)</span> times the difference between the two
+groups. A group with unequal weights is labelled
+<code>W(A .20, C .80)</code>.</p>
+</div>
+<div id="an-example-of-a-coding-that-does-not-say-what-it-seems" class="section level1">
+<h1>An example of a coding that does not say what it seems</h1>
+<p>A study compares a control condition with two treatments. The
+researchers want to know whether the treatments, taken together, improve
+on the control condition, and whether <code>T2</code> improves on it. A
+natural, but wrong, way to encode these questions is to write their
+weights directly as the coding columns:</p>
+<div class="sourceCode" id="cb1"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" tabindex="-1"></a><span class="fu">set.seed</span>(<span class="dv">2</span>)</span>
+<span id="cb1-2"><a href="#cb1-2" tabindex="-1"></a>trial <span class="ot">&lt;-</span> <span class="fu">data.frame</span>(<span class="at">group =</span> <span class="fu">factor</span>(<span class="fu">rep</span>(<span class="fu">c</span>(<span class="st">&quot;Control&quot;</span>, <span class="st">&quot;T1&quot;</span>, <span class="st">&quot;T2&quot;</span>), <span class="at">each =</span> <span class="dv">30</span>),</span>
+<span id="cb1-3"><a href="#cb1-3" tabindex="-1"></a>                                   <span class="at">levels =</span> <span class="fu">c</span>(<span class="st">&quot;Control&quot;</span>, <span class="st">&quot;T1&quot;</span>, <span class="st">&quot;T2&quot;</span>)))</span>
+<span id="cb1-4"><a href="#cb1-4" tabindex="-1"></a>trial<span class="sc">$</span>score <span class="ot">&lt;-</span> <span class="fu">rnorm</span>(<span class="dv">90</span>, <span class="at">mean =</span> <span class="fu">c</span>(<span class="dv">10</span>, <span class="dv">12</span>, <span class="dv">15</span>)[trial<span class="sc">$</span>group], <span class="at">sd =</span> <span class="dv">3</span>)</span>
+<span id="cb1-5"><a href="#cb1-5" tabindex="-1"></a></span>
+<span id="cb1-6"><a href="#cb1-6" tabindex="-1"></a>intended <span class="ot">&lt;-</span> <span class="fu">rbind</span>(<span class="st">&quot;Treat-Control&quot;</span> <span class="ot">=</span> <span class="fu">c</span>(<span class="at">Control =</span> <span class="sc">-</span><span class="dv">1</span>, <span class="at">T1 =</span> <span class="fl">0.5</span>, <span class="at">T2 =</span> <span class="fl">0.5</span>),</span>
+<span id="cb1-7"><a href="#cb1-7" tabindex="-1"></a>                  <span class="st">&quot;T2-Control&quot;</span>    <span class="ot">=</span> <span class="fu">c</span>(<span class="at">Control =</span> <span class="sc">-</span><span class="dv">1</span>, <span class="at">T1 =</span> <span class="dv">0</span>,   <span class="at">T2 =</span> <span class="dv">1</span>))</span>
+<span id="cb1-8"><a href="#cb1-8" tabindex="-1"></a></span>
+<span id="cb1-9"><a href="#cb1-9" tabindex="-1"></a>trial_written <span class="ot">&lt;-</span> trial</span>
+<span id="cb1-10"><a href="#cb1-10" tabindex="-1"></a><span class="fu">contrasts</span>(trial_written<span class="sc">$</span>group) <span class="ot">&lt;-</span> <span class="fu">t</span>(intended)</span>
+<span id="cb1-11"><a href="#cb1-11" tabindex="-1"></a>fit_written <span class="ot">&lt;-</span> <span class="fu">lm</span>(score <span class="sc">~</span> group, <span class="at">data =</span> trial_written)</span>
+<span id="cb1-12"><a href="#cb1-12" tabindex="-1"></a><span class="fu">round</span>(<span class="fu">coef</span>(fit_written)[<span class="sc">-</span><span class="dv">1</span>], <span class="dv">2</span>)</span>
+<span id="cb1-13"><a href="#cb1-13" tabindex="-1"></a><span class="co">#&gt; groupTreat-Control    groupT2-Control </span></span>
+<span id="cb1-14"><a href="#cb1-14" tabindex="-1"></a><span class="co">#&gt;              -0.77               2.37</span></span></code></pre></div>
+<p>The coefficients suggest that the treatments do not improve on the
+control condition, but they do not estimate the intended comparisons.
+Without further information, MoPlot can only note that the signs of the
+coding columns do not describe the comparisons estimated:</p>
+<div class="sourceCode" id="cb2"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" tabindex="-1"></a>written <span class="ot">&lt;-</span> <span class="fu">contrasts_onepred</span>(fit_written, <span class="st">&quot;group&quot;</span>)</span>
+<span id="cb2-2"><a href="#cb2-2" tabindex="-1"></a><span class="co">#&gt; Contrast_1: the signs of the coding column suggest Mean(T1, T2) vs Control, whereas the coefficient estimates 4/3 x [T1 - Mean(Control, T2)]. This is expected when the coding was derived from a hypothesis matrix (for example with MASS::ginv() or hypr). To check the intended comparisons, supply them through `hypotheses`.</span></span>
+<span id="cb2-3"><a href="#cb2-3" tabindex="-1"></a><span class="co">#&gt; Contrast_2: the signs of the coding column suggest T2 vs Control, whereas the coefficient estimates T2 - T1. This is expected when the coding was derived from a hypothesis matrix (for example with MASS::ginv() or hypr). To check the intended comparisons, supply them through `hypotheses`.</span></span></code></pre></div>
+<p>The note does not say that the coding is wrong: a coding correctly
+derived from a hypothesis matrix also has columns that do not resemble
+the comparisons, as shown below. MoPlot cannot know what you
+intended.</p>
+</div>
+<div id="declaring-the-intended-comparisons" class="section level1">
+<h1>Declaring the intended comparisons</h1>
+<p>The argument <code>hypotheses</code> declares the intended
+comparisons, as the rows of a hypothesis matrix: one row per
+coefficient, in the order of the contrast columns, and one column per
+level, with weights summing to zero. Row names label the hypotheses;
+column names, when present, must be the levels and may be in any
+order.</p>
+<div class="sourceCode" id="cb3"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" tabindex="-1"></a>written <span class="ot">&lt;-</span> <span class="fu">contrasts_onepred</span>(fit_written, <span class="st">&quot;group&quot;</span>, <span class="at">hypotheses =</span> intended)</span>
+<span id="cb3-2"><a href="#cb3-2" tabindex="-1"></a><span class="co">#&gt; Contrast_1 does not estimate the declared hypothesis &#39;Treat-Control&#39; (Mean(T1, T2) - Control): it estimates 4/3 x [T1 - Mean(Control, T2)].</span></span>
+<span id="cb3-3"><a href="#cb3-3" tabindex="-1"></a><span class="co">#&gt; Contrast_2 does not estimate the declared hypothesis &#39;T2-Control&#39; (T2 - Control): it estimates T2 - T1.</span></span>
+<span id="cb3-4"><a href="#cb3-4" tabindex="-1"></a><span class="fu">attr</span>(written, <span class="st">&quot;hypothesis_check&quot;</span>)</span>
+<span id="cb3-5"><a href="#cb3-5" tabindex="-1"></a><span class="co">#&gt;     Contrast    Hypothesis               Declared</span></span>
+<span id="cb3-6"><a href="#cb3-6" tabindex="-1"></a><span class="co">#&gt; 1 Contrast_1 Treat-Control Mean(T1, T2) - Control</span></span>
+<span id="cb3-7"><a href="#cb3-7" tabindex="-1"></a><span class="co">#&gt; 2 Contrast_2    T2-Control           T2 - Control</span></span>
+<span id="cb3-8"><a href="#cb3-8" tabindex="-1"></a><span class="co">#&gt;                        Estimated  Status Ratio</span></span>
+<span id="cb3-9"><a href="#cb3-9" tabindex="-1"></a><span class="co">#&gt; 1 4/3 x [T1 - Mean(Control, T2)] differs    NA</span></span>
+<span id="cb3-10"><a href="#cb3-10" tabindex="-1"></a><span class="co">#&gt; 2                        T2 - T1 differs    NA</span></span></code></pre></div>
+<p>Neither coefficient estimates its declared hypothesis. The first
+compares <code>T1</code> with the mean of the control condition and
+<code>T2</code>, multiplied by 4/3; the second compares <code>T2</code>
+with <code>T1</code>. MoPlot does not correct the model, refit it, or
+change its coding: it reports what the fitted coding estimates. The
+figure shows these estimated comparisons, and its caption reports the
+result of the check:</p>
+<div class="sourceCode" id="cb4"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" tabindex="-1"></a><span class="fu">moplot_onepred</span>(fit_written, <span class="st">&quot;group&quot;</span>, <span class="at">hypotheses =</span> intended, <span class="at">style =</span> <span class="st">&quot;publication&quot;</span>)</span>
+<span id="cb4-2"><a href="#cb4-2" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb4-3"><a href="#cb4-3" tabindex="-1"></a><span class="co">#&gt; Plot caption:</span></span>
+<span id="cb4-4"><a href="#cb4-4" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb4-5"><a href="#cb4-5" tabindex="-1"></a><span class="co">#&gt; This plot summarizes the contrasts for the categorical predictor group in the fitted model for score.</span></span>
+<span id="cb4-6"><a href="#cb4-6" tabindex="-1"></a><span class="co">#&gt; Under custom coding, each contrast represents a user-defined comparison rather than a standard contrast pattern.</span></span>
+<span id="cb4-7"><a href="#cb4-7" tabindex="-1"></a><span class="co">#&gt; C1 and C2 do not estimate the declared hypotheses; the figure shows the comparisons that the coefficients estimate.</span></span>
+<span id="cb4-8"><a href="#cb4-8" tabindex="-1"></a><span class="co">#&gt; Points in the upper panel represent the observed means for the quantities involved in each comparison, and error bars represent their confidence intervals.</span></span>
+<span id="cb4-9"><a href="#cb4-9" tabindex="-1"></a><span class="co">#&gt; Dashed segments connect the quantities specified by each user-defined contrast.</span></span>
+<span id="cb4-10"><a href="#cb4-10" tabindex="-1"></a><span class="co">#&gt; Abbreviated factor labels are used where needed for readability: Cont. = Control.</span></span>
+<span id="cb4-11"><a href="#cb4-11" tabindex="-1"></a><span class="co">#&gt; Labels C1 and C2 and so forth identify the corresponding contrasts; an asterisk indicates p &lt; 0.050.</span></span>
+<span id="cb4-12"><a href="#cb4-12" tabindex="-1"></a><span class="co">#&gt; The lower panel displays the model coefficient for each contrast, together with its confidence interval and an approximate Cohen&#39;s d.</span></span>
+<span id="cb4-13"><a href="#cb4-13" tabindex="-1"></a><span class="co">#&gt; Each coefficient (indicated as Coef. 1, Coef. 2, and so forth) is horizontally aligned with the center of the corresponding comparison in the upper panel.</span></span>
+<span id="cb4-14"><a href="#cb4-14" tabindex="-1"></a><span class="co">#&gt; Under this coding, each model coefficient equals a scale factor s multiplied by the difference displayed in the upper panel on the linear-predictor scale (s = 4/3 for C1, s = 1 for C2).</span></span></code></pre></div>
+<div class="figure" style="text-align: center">
+<img role="img" aria-label="The comparisons estimated by the coding written from the hypotheses." src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAwAAAAJACAMAAAANcPFkAAACfFBMVEUAAAAAADoAAGYAOjoAOmYAOpAAZpAAZrYAcrIAcsAAcs0Ai8AAi9olJSUlJVAlJXclUFAlUHclUJsld3cld706AAA6AGY6OgA6Ojo6OmY6OpA6ZmY6ZpA6ZrY6crI6i7I6i806kLY6kNs6pNo6u/JQJSVQJVBQJXdQUCVQUFBQUHdQUJtQd3dQd71Qm5tQm99mAABmOgBmOjpmOmZmZjpmZmZmZpBmcrJmi7Jmi8BmkJBmkLZmkNtmtrZmtttmtv9mu+Zm0vJm0v9zc3N3JSV3JVB3JXd3UCV3UHd3UJt3d3d3m5t3m713m993vd93vf+Hvb2QOgCQOjqQZjqQZmaQZpCQi7KQkLaQtraQttuQ27aQ29uQ2/+Q6f+WlpabUCWbUFCbUHebm3ebm72bvZubvb2b372b39+b3/+zs7O2ZgC2Zjq2kDq2kGa2kJC2pLK2pMC2tpC2tra2ttu225C229u22/+26fK26f+2/7a2/9u2//+9dyW9d1C9m1C9vb29vd+9///bkDrbkGbbtmbbtpDbtrbbttvbu8Db0s3b0trb27bb29vb2//b/7bb/9vb//Lb///fm1Dfm5vfvXffvb3f35vf373f39/f3//f/9/f///mnwDmnzrmn2bmsDrmsJDmwbbqnwDqn2bqsADqsGbqwZDqwbbq0Nvr6+vunwDusADusDruwTru4Nvu4P/ysADy0Gby4JDy8P/3wQD3wTr30Dr38Nv38P/3///70Dr74Gb74JD78Lb78P/7////tmb/vXf/vZv/0s3/25D/27b/29v/35v/373/39//4Gb/6dr/8JD//7b//73//9v//9///+b///L///+mmg8oAAAACXBIWXMAAA7DAAAOwwHHb6hkAAAfzUlEQVR4nO2di59cV13A724bs6iT0pDVVlKU6LZoq7vBtirFRM2G+sJ1CY8Wa7cqSppShRSiNCsxoSmIAcwUq7BbxPqigoJvqShZSTNayc7I/Ye85z5m752ZvXPv3HPvnHN+3++nzTw3Z87m951zfve8PB9AMN60PwDANEEAEA0CgGgQAESDACAaBADRIACIBgFANAgAokEAEA0CgGgQAESDACAaBADRIACIBgFANAgAokEAEA0CgGgQAESDACAaBADR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" alt="The comparisons estimated by the coding written from the hypotheses." width="100%" />
+<p class="caption">
+The comparisons estimated by the coding written from the hypotheses.
+</p>
+</div>
+</div>
+<div id="obtaining-the-coding-for-the-intended-comparisons" class="section level1">
+<h1>Obtaining the coding for the intended comparisons</h1>
+<p>The coding that estimates the intended comparisons is obtained from
+the hypothesis matrix with the generalized inverse:</p>
+<div class="sourceCode" id="cb5"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" tabindex="-1"></a>coding <span class="ot">&lt;-</span> MASS<span class="sc">::</span><span class="fu">ginv</span>(intended)</span>
+<span id="cb5-2"><a href="#cb5-2" tabindex="-1"></a><span class="fu">dimnames</span>(coding) <span class="ot">&lt;-</span> <span class="fu">list</span>(<span class="fu">levels</span>(trial<span class="sc">$</span>group), <span class="fu">rownames</span>(intended))</span>
+<span id="cb5-3"><a href="#cb5-3" tabindex="-1"></a><span class="fu">round</span>(coding, <span class="dv">2</span>)</span>
+<span id="cb5-4"><a href="#cb5-4" tabindex="-1"></a><span class="co">#&gt;         Treat-Control T2-Control</span></span>
+<span id="cb5-5"><a href="#cb5-5" tabindex="-1"></a><span class="co">#&gt; Control         -0.67          0</span></span>
+<span id="cb5-6"><a href="#cb5-6" tabindex="-1"></a><span class="co">#&gt; T1               1.33         -1</span></span>
+<span id="cb5-7"><a href="#cb5-7" tabindex="-1"></a><span class="co">#&gt; T2              -0.67          1</span></span>
+<span id="cb5-8"><a href="#cb5-8" tabindex="-1"></a></span>
+<span id="cb5-9"><a href="#cb5-9" tabindex="-1"></a>trial_derived <span class="ot">&lt;-</span> trial</span>
+<span id="cb5-10"><a href="#cb5-10" tabindex="-1"></a><span class="fu">contrasts</span>(trial_derived<span class="sc">$</span>group) <span class="ot">&lt;-</span> coding</span>
+<span id="cb5-11"><a href="#cb5-11" tabindex="-1"></a>fit_derived <span class="ot">&lt;-</span> <span class="fu">lm</span>(score <span class="sc">~</span> group, <span class="at">data =</span> trial_derived)</span>
+<span id="cb5-12"><a href="#cb5-12" tabindex="-1"></a>derived <span class="ot">&lt;-</span> <span class="fu">contrasts_onepred</span>(fit_derived, <span class="st">&quot;group&quot;</span>, <span class="at">hypotheses =</span> intended)</span>
+<span id="cb5-13"><a href="#cb5-13" tabindex="-1"></a><span class="co">#&gt; Contrast_1 estimates the declared hypothesis &#39;Treat-Control&#39;: Mean(T1, T2) - Control.</span></span>
+<span id="cb5-14"><a href="#cb5-14" tabindex="-1"></a><span class="co">#&gt; Contrast_2 estimates the declared hypothesis &#39;T2-Control&#39;: T2 - Control.</span></span>
+<span id="cb5-15"><a href="#cb5-15" tabindex="-1"></a><span class="fu">round</span>(<span class="fu">coef</span>(fit_derived)[<span class="sc">-</span><span class="dv">1</span>], <span class="dv">2</span>)</span>
+<span id="cb5-16"><a href="#cb5-16" tabindex="-1"></a><span class="co">#&gt; groupTreat-Control    groupT2-Control </span></span>
+<span id="cb5-17"><a href="#cb5-17" tabindex="-1"></a><span class="co">#&gt;               2.39               3.58</span></span></code></pre></div>
+<p>The check now confirms both hypotheses, and the coefficients equal
+the intended differences. Note that the correct coding column for
+<em>Treat-Control</em>, approximately <span class="math inline">\((-0.67, 1.33, -0.67)\)</span>, bears no
+resemblance to the comparison it estimates.</p>
+<div class="sourceCode" id="cb6"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1" tabindex="-1"></a><span class="fu">moplot_onepred</span>(fit_derived, <span class="st">&quot;group&quot;</span>, <span class="at">hypotheses =</span> intended, <span class="at">style =</span> <span class="st">&quot;publication&quot;</span>)</span>
+<span id="cb6-2"><a href="#cb6-2" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb6-3"><a href="#cb6-3" tabindex="-1"></a><span class="co">#&gt; Plot caption:</span></span>
+<span id="cb6-4"><a href="#cb6-4" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb6-5"><a href="#cb6-5" tabindex="-1"></a><span class="co">#&gt; This plot summarizes the contrasts for the categorical predictor group in the fitted model for score.</span></span>
+<span id="cb6-6"><a href="#cb6-6" tabindex="-1"></a><span class="co">#&gt; Under custom coding, each contrast represents a user-defined comparison rather than a standard contrast pattern.</span></span>
+<span id="cb6-7"><a href="#cb6-7" tabindex="-1"></a><span class="co">#&gt; Each coefficient estimates the corresponding declared hypothesis.</span></span>
+<span id="cb6-8"><a href="#cb6-8" tabindex="-1"></a><span class="co">#&gt; Points in the upper panel represent the observed means for the quantities involved in each comparison, and error bars represent their confidence intervals.</span></span>
+<span id="cb6-9"><a href="#cb6-9" tabindex="-1"></a><span class="co">#&gt; Dashed segments connect the quantities specified by each user-defined contrast.</span></span>
+<span id="cb6-10"><a href="#cb6-10" tabindex="-1"></a><span class="co">#&gt; Abbreviated factor labels are used where needed for readability: Cont. = Control.</span></span>
+<span id="cb6-11"><a href="#cb6-11" tabindex="-1"></a><span class="co">#&gt; Labels C1 and C2 and so forth identify the corresponding contrasts; an asterisk indicates p &lt; 0.050.</span></span>
+<span id="cb6-12"><a href="#cb6-12" tabindex="-1"></a><span class="co">#&gt; The lower panel displays the model coefficient for each contrast, together with its confidence interval and an approximate Cohen&#39;s d.</span></span>
+<span id="cb6-13"><a href="#cb6-13" tabindex="-1"></a><span class="co">#&gt; Each coefficient (indicated as Coef. 1, Coef. 2, and so forth) is horizontally aligned with the center of the corresponding comparison in the upper panel.</span></span></code></pre></div>
+<div class="figure" style="text-align: center">
+<img role="img" aria-label="The comparisons estimated by the coding derived from the hypothesis matrix." src="data:image/png;base64,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" alt="The comparisons estimated by the coding derived from the hypothesis matrix." width="100%" />
+<p class="caption">
+The comparisons estimated by the coding derived from the hypothesis
+matrix.
+</p>
+</div>
+<p>The <strong>hypr</strong> package builds the same matrices from
+hypotheses written as equations. <code>hypr::hmat()</code> returns the
+hypothesis matrix in the format expected by <code>hypotheses</code>, and
+<code>hypr::cmat()</code> the corresponding coding:</p>
+<div class="sourceCode" id="cb7"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1" tabindex="-1"></a>h <span class="ot">&lt;-</span> hypr<span class="sc">::</span><span class="fu">hypr</span>(<span class="at">TreatControl =</span> (T1 <span class="sc">+</span> T2) <span class="sc">/</span> <span class="dv">2</span> <span class="sc">~</span> Control,</span>
+<span id="cb7-2"><a href="#cb7-2" tabindex="-1"></a>                <span class="at">T2Control    =</span> T2 <span class="sc">~</span> Control,</span>
+<span id="cb7-3"><a href="#cb7-3" tabindex="-1"></a>                <span class="at">levels =</span> <span class="fu">levels</span>(trial<span class="sc">$</span>group))</span>
+<span id="cb7-4"><a href="#cb7-4" tabindex="-1"></a>trial_hypr <span class="ot">&lt;-</span> trial</span>
+<span id="cb7-5"><a href="#cb7-5" tabindex="-1"></a><span class="fu">contrasts</span>(trial_hypr<span class="sc">$</span>group) <span class="ot">&lt;-</span> hypr<span class="sc">::</span><span class="fu">cmat</span>(h)</span>
+<span id="cb7-6"><a href="#cb7-6" tabindex="-1"></a>fit_hypr <span class="ot">&lt;-</span> <span class="fu">lm</span>(score <span class="sc">~</span> group, <span class="at">data =</span> trial_hypr)</span>
+<span id="cb7-7"><a href="#cb7-7" tabindex="-1"></a>checked <span class="ot">&lt;-</span> <span class="fu">contrasts_onepred</span>(fit_hypr, <span class="st">&quot;group&quot;</span>, <span class="at">hypotheses =</span> hypr<span class="sc">::</span><span class="fu">hmat</span>(h))</span>
+<span id="cb7-8"><a href="#cb7-8" tabindex="-1"></a><span class="co">#&gt; Contrast_1 estimates the declared hypothesis &#39;TreatControl&#39;: Mean(T1, T2) - Control.</span></span>
+<span id="cb7-9"><a href="#cb7-9" tabindex="-1"></a><span class="co">#&gt; Contrast_2 estimates the declared hypothesis &#39;T2Control&#39;: T2 - Control.</span></span></code></pre></div>
+</div>
+<div id="the-possible-results" class="section level1">
+<h1>The possible results</h1>
+<p>Each declared hypothesis receives one of four results:</p>
+<table>
+<colgroup>
+<col width="50%" />
+<col width="50%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th align="left">Status</th>
+<th align="left">Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left"><code>matches</code></td>
+<td align="left">The coefficient estimates the declared comparison.</td>
+</tr>
+<tr class="even">
+<td align="left"><code>rescaled</code></td>
+<td align="left">It estimates the declared comparison multiplied by a
+positive factor.</td>
+</tr>
+<tr class="odd">
+<td align="left"><code>reversed</code></td>
+<td align="left">It estimates the declared comparison with reversed
+sign.</td>
+</tr>
+<tr class="even">
+<td align="left"><code>differs</code></td>
+<td align="left">It estimates a different comparison, reported in the
+message.</td>
+</tr>
+</tbody>
+</table>
+<p>The scale of the declared weights does not matter:
+<code>c(-1, 0.5, 0.5)</code> and <code>c(-2, 1, 1)</code> declare the
+same comparison. A <code>rescaled</code> result is not an error, but it
+tells how to read the coefficient. Under Helmert coding, for example,
+the coefficients are fractions of the plain differences:</p>
+<div class="sourceCode" id="cb8"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb8-1"><a href="#cb8-1" tabindex="-1"></a>trial_helmert <span class="ot">&lt;-</span> trial</span>
+<span id="cb8-2"><a href="#cb8-2" tabindex="-1"></a><span class="fu">contrasts</span>(trial_helmert<span class="sc">$</span>group) <span class="ot">&lt;-</span> <span class="fu">contr.helmert</span>(<span class="dv">3</span>)</span>
+<span id="cb8-3"><a href="#cb8-3" tabindex="-1"></a>fit_helmert <span class="ot">&lt;-</span> <span class="fu">lm</span>(score <span class="sc">~</span> group, <span class="at">data =</span> trial_helmert)</span>
+<span id="cb8-4"><a href="#cb8-4" tabindex="-1"></a>plain_differences <span class="ot">&lt;-</span> <span class="fu">rbind</span>(<span class="st">&quot;T1-Control&quot;</span>        <span class="ot">=</span> <span class="fu">c</span>(<span class="sc">-</span><span class="dv">1</span>, <span class="dv">1</span>, <span class="dv">0</span>),</span>
+<span id="cb8-5"><a href="#cb8-5" tabindex="-1"></a>                           <span class="st">&quot;T2-Mean(Control,T1)&quot;</span> <span class="ot">=</span> <span class="fu">c</span>(<span class="sc">-</span><span class="fl">0.5</span>, <span class="sc">-</span><span class="fl">0.5</span>, <span class="dv">1</span>))</span>
+<span id="cb8-6"><a href="#cb8-6" tabindex="-1"></a>helmert <span class="ot">&lt;-</span> <span class="fu">contrasts_onepred</span>(fit_helmert, <span class="st">&quot;group&quot;</span>, <span class="at">hypotheses =</span> plain_differences)</span>
+<span id="cb8-7"><a href="#cb8-7" tabindex="-1"></a><span class="co">#&gt; Contrast_1 estimates the declared hypothesis &#39;T1-Control&#39; (T1 - Control) multiplied by 1/2.</span></span>
+<span id="cb8-8"><a href="#cb8-8" tabindex="-1"></a><span class="co">#&gt; Contrast_2 estimates the declared hypothesis &#39;T2-Mean(Control,T1)&#39; (T2 - Mean(Control, T1)) multiplied by 1/3.</span></span></code></pre></div>
+<p><code>moplot_onepred(..., per_difference = TRUE)</code> rescales the
+lower panel so that it reports these plain differences.</p>
+</div>
+<div id="interactions" class="section level1">
+<h1>Interactions</h1>
+<p>For interactions, <code>hypotheses</code> is a named list with the
+declared comparisons of one or more factors. Because the hypothesis of
+an interaction coefficient is the Kronecker product of the hypotheses of
+its components, each interaction coefficient estimates the product of
+the declared comparisons when each declared component does. Factors that
+are not listed are not checked.</p>
+<div class="sourceCode" id="cb9"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb9-1"><a href="#cb9-1" tabindex="-1"></a>cells <span class="ot">&lt;-</span> <span class="fu">data.frame</span>(</span>
+<span id="cb9-2"><a href="#cb9-2" tabindex="-1"></a>  <span class="at">treatment =</span> <span class="fu">factor</span>(<span class="fu">rep</span>(<span class="fu">c</span>(<span class="st">&quot;Low&quot;</span>, <span class="st">&quot;Medium&quot;</span>, <span class="st">&quot;High&quot;</span>), <span class="dv">2</span>), <span class="at">levels =</span> <span class="fu">c</span>(<span class="st">&quot;Low&quot;</span>, <span class="st">&quot;Medium&quot;</span>, <span class="st">&quot;High&quot;</span>)),</span>
+<span id="cb9-3"><a href="#cb9-3" tabindex="-1"></a>  <span class="at">context =</span> <span class="fu">factor</span>(<span class="fu">rep</span>(<span class="fu">c</span>(<span class="st">&quot;Baseline&quot;</span>, <span class="st">&quot;Enhanced&quot;</span>), <span class="at">each =</span> <span class="dv">3</span>)),</span>
+<span id="cb9-4"><a href="#cb9-4" tabindex="-1"></a>  <span class="at">mu =</span> <span class="fu">c</span>(<span class="dv">5</span>, <span class="dv">7</span>, <span class="dv">3</span>, <span class="dv">6</span>, <span class="dv">10</span>, <span class="dv">5</span>))</span>
+<span id="cb9-5"><a href="#cb9-5" tabindex="-1"></a>dat_int <span class="ot">&lt;-</span> cells[<span class="fu">rep</span>(<span class="fu">seq_len</span>(<span class="dv">6</span>), <span class="at">each =</span> <span class="dv">5</span>), ]</span>
+<span id="cb9-6"><a href="#cb9-6" tabindex="-1"></a>dat_int<span class="sc">$</span>outcome <span class="ot">&lt;-</span> dat_int<span class="sc">$</span>mu <span class="sc">+</span> <span class="fu">rep</span>(<span class="fu">c</span>(<span class="sc">-</span><span class="dv">1</span>, <span class="sc">-</span><span class="fl">0.5</span>, <span class="dv">0</span>, <span class="fl">0.5</span>, <span class="dv">1</span>), <span class="dv">6</span>)</span>
+<span id="cb9-7"><a href="#cb9-7" tabindex="-1"></a></span>
+<span id="cb9-8"><a href="#cb9-8" tabindex="-1"></a>intended_treatment <span class="ot">&lt;-</span> <span class="fu">rbind</span>(<span class="st">&quot;Medium-Low&quot;</span>  <span class="ot">=</span> <span class="fu">c</span>(<span class="at">Low =</span> <span class="sc">-</span><span class="dv">1</span>, <span class="at">Medium =</span> <span class="dv">1</span>, <span class="at">High =</span> <span class="dv">0</span>),</span>
+<span id="cb9-9"><a href="#cb9-9" tabindex="-1"></a>                            <span class="st">&quot;High-Medium&quot;</span> <span class="ot">=</span> <span class="fu">c</span>(<span class="at">Low =</span> <span class="dv">0</span>, <span class="at">Medium =</span> <span class="sc">-</span><span class="dv">1</span>, <span class="at">High =</span> <span class="dv">1</span>))</span>
+<span id="cb9-10"><a href="#cb9-10" tabindex="-1"></a>intended_context <span class="ot">&lt;-</span> <span class="fu">rbind</span>(<span class="st">&quot;Enhanced-Baseline&quot;</span> <span class="ot">=</span> <span class="fu">c</span>(<span class="at">Baseline =</span> <span class="sc">-</span><span class="dv">1</span>, <span class="at">Enhanced =</span> <span class="dv">1</span>))</span>
+<span id="cb9-11"><a href="#cb9-11" tabindex="-1"></a></span>
+<span id="cb9-12"><a href="#cb9-12" tabindex="-1"></a><span class="fu">contrasts</span>(dat_int<span class="sc">$</span>treatment) <span class="ot">&lt;-</span> MASS<span class="sc">::</span><span class="fu">ginv</span>(intended_treatment)</span>
+<span id="cb9-13"><a href="#cb9-13" tabindex="-1"></a><span class="fu">contrasts</span>(dat_int<span class="sc">$</span>context) <span class="ot">&lt;-</span> MASS<span class="sc">::</span><span class="fu">contr.sdif</span>(<span class="dv">2</span>)</span>
+<span id="cb9-14"><a href="#cb9-14" tabindex="-1"></a>model_int <span class="ot">&lt;-</span> <span class="fu">lm</span>(outcome <span class="sc">~</span> treatment <span class="sc">*</span> context, <span class="at">data =</span> dat_int)</span>
+<span id="cb9-15"><a href="#cb9-15" tabindex="-1"></a></span>
+<span id="cb9-16"><a href="#cb9-16" tabindex="-1"></a>decomposition <span class="ot">&lt;-</span> <span class="fu">contrasts_multpred</span>(</span>
+<span id="cb9-17"><a href="#cb9-17" tabindex="-1"></a>  model_int,</span>
+<span id="cb9-18"><a href="#cb9-18" tabindex="-1"></a>  <span class="at">hypotheses =</span> <span class="fu">list</span>(<span class="at">treatment =</span> intended_treatment, <span class="at">context =</span> intended_context),</span>
+<span id="cb9-19"><a href="#cb9-19" tabindex="-1"></a>  <span class="at">methodological_note =</span> <span class="cn">FALSE</span></span>
+<span id="cb9-20"><a href="#cb9-20" tabindex="-1"></a>)</span>
+<span id="cb9-21"><a href="#cb9-21" tabindex="-1"></a><span class="co">#&gt; Variable treatment, contrast 1 estimates the declared hypothesis &#39;Medium-Low&#39;: Medium - Low.</span></span>
+<span id="cb9-22"><a href="#cb9-22" tabindex="-1"></a><span class="co">#&gt; Variable treatment, contrast 2 estimates the declared hypothesis &#39;High-Medium&#39;: High - Medium.</span></span>
+<span id="cb9-23"><a href="#cb9-23" tabindex="-1"></a><span class="co">#&gt; Variable context, contrast 1 estimates the declared hypothesis &#39;Enhanced-Baseline&#39;: Enhanced - Baseline.</span></span>
+<span id="cb9-24"><a href="#cb9-24" tabindex="-1"></a><span class="fu">attr</span>(decomposition, <span class="st">&quot;hypothesis_check&quot;</span>)</span>
+<span id="cb9-25"><a href="#cb9-25" tabindex="-1"></a><span class="co">#&gt;             Coefficient                      Hypothesis  Status Ratio</span></span>
+<span id="cb9-26"><a href="#cb9-26" tabindex="-1"></a><span class="co">#&gt; 1 treatment1:context2-1  Medium-Low x Enhanced-Baseline matches     1</span></span>
+<span id="cb9-27"><a href="#cb9-27" tabindex="-1"></a><span class="co">#&gt; 2 treatment2:context2-1 High-Medium x Enhanced-Baseline matches     1</span></span></code></pre></div>
+<p><code>moplot_multpred()</code> accepts the same list and reports the
+result in its caption. For a single predictor,
+<code>contrasts_onepred()</code> and <code>moplot_onepred()</code> also
+accept the list form, for example
+<code>hypotheses = list(group = intended)</code>.</p>
+</div>
+<div id="what-the-check-does-not-do" class="section level1">
+<h1>What the check does not do</h1>
+<ul>
+<li>It does not modify the coding or refit the model: the figures always
+show the comparisons that the coefficients estimate.</li>
+<li>It does not choose a coding for you: the coding for a set of
+hypotheses is obtained with <code>MASS::ginv()</code> or
+<strong>hypr</strong>.</li>
+<li>It requires one declared hypothesis per coefficient of each declared
+factor.</li>
+</ul>
+</div>
+
+
+
+<!-- code folding -->
+
+
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+  (function () {
+    var script = document.createElement("script");
+    script.type = "text/javascript";
+    script.src  = "https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
+    document.getElementsByTagName("head")[0].appendChild(script);
+  })();
+</script>
+
+</body>
+</html>
